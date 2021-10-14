@@ -24,9 +24,9 @@ class ListSchedule extends StatelessWidget {
                         ),
                       ),
                     )
-                  : Container();
-            } else if (controller.listShcedule.isEmpty) {
-              return Center(child: labelText('Data tidak ditemukan'));
+                  : (controller.listShcedule.isEmpty)
+                      ? Center(child: labelText('Data tidak ditemukan'))
+                      : Container();
             } else {
               return GestureDetector(
                 onTap: () {

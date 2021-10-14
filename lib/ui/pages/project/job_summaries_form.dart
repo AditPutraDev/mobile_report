@@ -2,12 +2,24 @@ part of '../pages.dart';
 
 typedef IsDelete();
 
+// ignore: must_be_immutable
 class JobSummariesForm extends StatefulWidget {
+   final String id;
   final Jobs? job;
   final state = _JobSummariesFormState();
   final IsDelete? isDelete;
+  TextEditingController? kasus;
+  TextEditingController? saran;
+  TextEditingController? hargaJual;
 
-  JobSummariesForm({Key? key, this.job, this.isDelete}) : super(key: key);
+  JobSummariesForm(this.id,
+      {Key? key,
+      this.job,
+      this.isDelete,
+      this.kasus,
+      this.saran,
+      this.hargaJual})
+      : super(key: key);
   @override
   _JobSummariesFormState createState() => state;
 
@@ -18,9 +30,45 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
   final form = GlobalKey<FormState>();
   UnitPrice? unitPrice;
   bool onUpload = false;
-  List<ImageX> imageBase64 = [];
+  List<ImageSourceX> imageBase64 = [];
   List<File> _image = [];
   final picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    getinitialImage();
+  }
+
+  getinitialImage() async {
+    imageBase64.add(ImageSourceX(
+        src: await networkImageToBase64(widget.job!.image?.first.src!),
+        fullname: widget.job!.image?.first.fullname ?? ''));
+
+    print(imageBase64);
+    setState(() {});
+    // widget.kasus!.text = widget.job!.kasus;
+
+    // widget.saran!.text = widget.job!.saran;
+    widget.kasus = TextEditingController(text: widget.job!.kasus);
+    widget.saran = TextEditingController(text: widget.job!.saran);
+    widget.hargaJual = TextEditingController(text: widget.job!.harga);
+
+    print('============+=======');
+    print(widget.job!.kasus);
+  }
+
+  getTextController() {
+    widget.hargaJual!.text = widget.job!.harga;
+
+    print(widget.saran!.text);
+  }
+
+  Future<String> networkImageToBase64(String? imageUrl) async {
+    http.Response response = await http.get(Uri.parse(imageUrl!));
+    final bytes = response.bodyBytes;
+    return base64Encode(bytes);
+  }
 
   Future getImage(ImageSource source) async {
     setState(() {
@@ -34,9 +82,9 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
       setState(() {
         _image.add(File(pickedFile.path));
         imageBase64.add(
-          ImageX()
-            ..image = baseimage
-            ..name = pickedFile.path.split("/").last,
+          ImageSourceX()
+            ..src = baseimage
+            ..fullname = pickedFile.path.split("/").last,
         );
       });
     }
@@ -48,7 +96,7 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
 
   removeImage(int index) {
     setState(() {
-      _image.removeAt(index);
+      //_image.removeAt(index);
       imageBase64.removeAt(index);
     });
   }
@@ -65,10 +113,7 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
           children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               labelText('Gambar'),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: widget.isDelete,
-              ),
+              IconButton(icon: Icon(Icons.delete), onPressed: widget.isDelete),
             ]),
             ConstrainedBox(
               constraints: BoxConstraints(
@@ -88,10 +133,13 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
                             alignment: Alignment.center,
                             fit: StackFit.expand,
                             children: [
-                              Image.file(
-                                _image[index],
-                                fit: BoxFit.cover,
-                              ),
+                              _image.length > 0
+                                  ? Image.file(
+                                      _image[index],
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.network(
+                                      widget.job!.image!.first.src!),
                               IconButton(
                                 onPressed: () => removeImage(index),
                                 icon: Icon(
@@ -114,13 +162,13 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
                           onTap: onUpload
                               ? null
                               : () async {
-                                  final imgSource = await imgSourceDialog();
-                                  if (imgSource != null) {
-                                    await getImage(imgSource);
-                                    setState(() {
-                                      widget.job!.image = imageBase64;
-                                    });
-                                  }
+                                  //final imgSource = await imgSourceDialog();
+                                  //if (imgSource != null) {
+                                  await getImage(ImageSource.gallery);
+                                  setState(() {
+                                    widget.job!.image = imageBase64;
+                                  });
+                                  // }
                                 },
                           child: Center(
                             child: onUpload
@@ -144,7 +192,7 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
             TextFormField(
               minLines: 1,
               maxLines: 10,
-              initialValue: widget.job!.kasus,
+              controller: widget.kasus,
               onSaved: (String? val) => widget.job!.kasus = val!,
               style: TextStyle(
                 color: Color(0xFF43A8FC),
@@ -165,7 +213,7 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
             TextFormField(
               minLines: 1,
               maxLines: 10,
-              initialValue: widget.job!.saran,
+              controller: widget.saran,
               onSaved: (String? val) => widget.job!.saran = val!,
               style: TextStyle(
                 color: Color(0xFF43A8FC),
@@ -188,15 +236,18 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
                   borderRadius: BorderRadius.circular(35), color: Colors.white),
               child: ListTile(
                 title: Text(
-                  (unitPrice == null) ? 'Pilih' : unitPrice!.text ?? '',
+                  widget.job?.ahs ?? '-',
                   style: TextStyle(
                       color: (unitPrice == null) ? Colors.grey : Colors.black),
                 ),
                 onTap: () {
                   Get.to(() => UnitPicker())!.then((value) {
+                    FocusScope.of(context).requestFocus(FocusNode());
                     if (value != null && value is UnitPrice) {
                       unitPrice = value;
-                      widget.job!.ahs = unitPrice!.id.toString();
+                      widget.job!.ahs = unitPrice!.text!;
+                      widget.job!.idSummeries = unitPrice!.id!;
+                      widget.job!.harga = unitPrice!.totalPrice!.toString();
 
                       setState(() {});
                     }
@@ -206,7 +257,7 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
             ),
             labelText('Harga Jual'),
             TextFormField(
-              //controller: budgetCT,
+              controller: widget.hargaJual,
               readOnly: true,
               style: TextStyle(
                 color: Color(0xFF43A8FC),
@@ -219,12 +270,12 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
                   fillColor: Colors.white,
                   filled: true,
                   contentPadding: EdgeInsets.fromLTRB(30, 16, 0, 16),
-                  hintStyle: TextStyle(color: Colors.grey),
-                  hintText: unitPrice == null || unitPrice!.totalPrice == null
+                  //hintStyle: TextStyle(color: Colors.grey),
+                  hintText: widget.job?.harga == ""
                       ? 'Harga Jual'
                       : NumberFormat.currency(
                               locale: 'id', symbol: 'Rp ', decimalDigits: 0)
-                          .format(unitPrice!.totalPrice)),
+                          .format(int.parse(widget.job!.harga))),
             ),
           ],
         ),
@@ -271,14 +322,18 @@ class _JobSummariesFormState extends State<JobSummariesForm> {
 }
 
 class Jobs {
+  String id;
+  int? idSummeries;
   String kasus;
   String saran;
   String ahs;
   String harga;
-  List<ImageX>? image;
+  List<ImageSourceX>? image;
 
-  Jobs(
-      {this.kasus = '',
+  Jobs(this.id,
+      {
+        this.idSummeries,
+        this.kasus = '',
       this.saran = '',
       this.ahs = '',
       this.harga = '0',

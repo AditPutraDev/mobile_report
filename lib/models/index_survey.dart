@@ -55,6 +55,9 @@ class Datum {
     this.materials,
     this.uPrice,
     this.jobs,
+    this.workMethod,
+    this.structure,
+    this.wall,
   });
 
   int? id;
@@ -83,6 +86,9 @@ class Datum {
   List<Materials>? materials;
   List<Uprice>? uPrice;
   List<JobsX>? jobs;
+  List<WorkMethodX>? workMethod;
+  List<StructureConditionX>? structure;
+  List<WallConditionX>? wall;
 
   factory Datum.fromJson(Map<String, dynamic> json) => Datum(
         id: json["id"],
@@ -92,7 +98,9 @@ class Datum {
         landArea: json["land_area"],
         buildingArea: json["building_area"],
         budget: json["budget"],
-        requestDate: DateTime.parse(json["request_date"]),
+        requestDate: json["request_date"] == null
+            ? null
+            : DateTime.parse(json["request_date"]),
         note: json["note"],
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
@@ -119,6 +127,12 @@ class Datum {
             json["unit_prices"].map((x) => Uprice.fromJson(x))),
         jobs: List<JobsX>.from(
             json["job_summaries"].map((x) => JobsX.fromJson(x))),
+        workMethod: List<WorkMethodX>.from(
+            json["work_methods"].map((x) => WorkMethodX.fromJson(x))),
+        structure: List<StructureConditionX>.from(json["structure_condition"]
+            .map((x) => StructureConditionX.fromJson(x))),
+        wall: List<WallConditionX>.from(
+            json["wall_condition"].map((x) => WallConditionX.fromJson(x))),
       );
 }
 
@@ -128,7 +142,9 @@ class JobsX {
   String? cases;
   String? suggestion;
   int? totalPrice;
+  String? price;
   List<ImageSourceX>? image;
+  List<ImageX>? imageJob;
 
   JobsX(
       {this.id,
@@ -136,25 +152,35 @@ class JobsX {
       this.cases,
       this.suggestion,
       this.totalPrice,
-      this.image});
+      this.price,
+      this.image,
+      this.imageJob});
   factory JobsX.fromJson(Map<String, dynamic> map) {
     return JobsX(
       id: map['id'],
-      name: map['name'],
-      cases: map['pivot']['case'],
-      suggestion: map['pivot']['suggestion'],
+      name: map['unit_price'] == null ? null : map['unit_price']['name'],
+      cases: map['case'],
+      suggestion: map['suggestion'],
       totalPrice: map['total_prices'],
+      price: map['unit_price'] == null
+          ? null
+          : map['unit_price']['prices'].toString(),
       image: List<ImageSourceX>.from(
-          map['pivot']["image_sources"].map((x) => ImageSourceX.fromJson(x))),
+          map["image_sources"].map((x) => ImageSourceX.fromJson(x))),
+      imageJob: map['unit_price'] == null
+          ? null
+          : List<ImageX>.from(
+              map['unit_price']["image_sources"].map((x) => ImageX.fromJob(x))),
     );
   }
 }
 
 class ImageSourceX {
   String? src;
-  ImageSourceX({this.src});
+  String? fullname;
+  ImageSourceX({this.src, this.fullname});
   factory ImageSourceX.fromJson(Map<String, dynamic> map) {
-    return ImageSourceX(src: map['src']);
+    return ImageSourceX(src: map['src'],fullname: map['fullname']);
   }
 }
 
@@ -162,11 +188,15 @@ class Uprice {
   int? id;
   String? name;
   int? totalPrice;
+  String? volume;
 
-  Uprice({this.id, this.name, this.totalPrice});
+  Uprice({this.id, this.name, this.totalPrice, this.volume});
   factory Uprice.fromJson(Map<String, dynamic> map) {
     return Uprice(
-        id: map['id'], name: map['name'], totalPrice: map['total_prices']);
+        id: map['id'],
+        name: map['name'],
+        totalPrice: map['total_prices'],
+        volume: map['pivot']['volume']);
   }
 }
 
@@ -276,6 +306,15 @@ class WorkTypePicker {
   }
 }
 
+class WorkMethodX {
+  int? id;
+  String? name;
+  WorkMethodX({this.id, this.name});
+  factory WorkMethodX.fromJson(Map<String, dynamic> map) {
+    return WorkMethodX(id: map['id'], name: map['name']);
+  }
+}
+
 class WorkMethodPicker {
   int? id;
   String? name;
@@ -355,6 +394,10 @@ class ImageX {
   factory ImageX.fromJson(Map<String, dynamic> map) {
     return ImageX(name: map['name'], image: map['image']);
   }
+
+  factory ImageX.fromJob(Map<String, dynamic> map) {
+    return ImageX(name: map['filename'], image: map['src']);
+  }
 }
 
 class ServiceCategory {
@@ -381,6 +424,16 @@ class Cabang {
   }
 }
 
+class StructureConditionX {
+  int? id;
+  String? name;
+
+  StructureConditionX({this.id, this.name});
+  factory StructureConditionX.fromJson(Map<String, dynamic> map) {
+    return StructureConditionX(id: map['id'], name: map['name']);
+  }
+}
+
 class StructureCondition {
   int? id;
   String? text;
@@ -388,6 +441,16 @@ class StructureCondition {
   StructureCondition({this.id, this.text});
   factory StructureCondition.fromJson(Map<String, dynamic> map) {
     return StructureCondition(id: map['id'], text: map['text']);
+  }
+}
+
+class WallConditionX {
+  int? id;
+  String? name;
+
+  WallConditionX({this.id, this.name});
+  factory WallConditionX.fromJson(Map<String, dynamic> map) {
+    return WallConditionX(id: map['id'], name: map['name']);
   }
 }
 

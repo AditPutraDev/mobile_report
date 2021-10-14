@@ -35,7 +35,6 @@ dependencies:
   package_info: ^2.0.2
   path_provider: ^2.0.2
   pdf: ^3.4.2
-  permission_handler: ^8.1.2
   provider: ^5.0.0
   shared_preferences: ^2.0.6
   shimmer: ^2.0.0

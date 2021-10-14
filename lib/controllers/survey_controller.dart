@@ -7,8 +7,13 @@ class SurveyController extends GetxController {
   RxList<Cabang> listCabang = <Cabang>[].obs;
 
   final search = TextEditingController();
+  var budgetCT = TextEditingController();
+  var existingBuildingArea = TextEditingController();
+  var existingLandArea = TextEditingController();
+  var buildingArea = TextEditingController();
+  var landArea = TextEditingController();
+  var note = TextEditingController();
   var searchText = "".obs;
-
   var more = true;
   var hasMore = true;
   var pages = 1;
@@ -74,12 +79,13 @@ class SurveyController extends GetxController {
               val.total = value.total;
               val.hasMorePage = value.hasMorePage;
               val.currentPage = value.currentPage;
-              isLoading.toggle();
+              isLoading(false);
             });
           }
         } else if (res.statusCode == 401) {
           final data = jsonDecode(res.body);
           authController.tokenExpired(data['message']);
+          isLoading(false);
         }
       });
     } catch (e) {
@@ -141,6 +147,7 @@ class SurveyController extends GetxController {
   void createSurvey(Map<String, dynamic> data) {
     try {
       isLoading.toggle();
+      logger.v(data);
       Request request = Request(
         url: '${authController.getUnitId()}/survey_report',
         body: json.encode(data),
@@ -150,30 +157,36 @@ class SurveyController extends GetxController {
         },
       );
       request.postPro().then((res) {
+        final data = json.decode(res.body);
         if (res.statusCode == 200) {
           logger.v(res.statusCode);
-          final da = json.decode(res.body);
-          logger.v(da);
           getSurveyReport();
-          isLoading.toggle();
+          isLoading(false);
           Get.back();
           showBotToastText('Berhasil');
+        } else if (res.statusCode == 422) {
+          isLoading(false);
+
+          logger.i(data);
+          //logger.i(data['job_summaries'][0]);
+          showBotToastText((data['job_summaries'] == null)
+              ? data['site_project_id'][0]
+              : data['job_summaries'][0] + ', Error ${res.statusCode}');
         } else {
           logger.i(res.statusCode);
-          isLoading.toggle();
-          showBotToastText('Isian job summaries wajib diisi');
-          print('Error ${res.statusCode}');
-          final da = json.decode(res.body);
-          logger.v(da);
+          isLoading(false);
+          showBotToastText(data['message'] + ', Error ${res.statusCode}');
         }
       });
     } catch (e) {
       logger.e(e);
+      showBotToastText(e);
     }
   }
 
   void updateSurvey(Map<String, dynamic> data, int id) {
     try {
+      logger.v(data);
       Request request = Request(
         url: '${authController.getUnitId()}/survey_report/$id',
         body: json.encode(data),
@@ -205,6 +218,11 @@ class SurveyController extends GetxController {
   getPdf(int id) {
     try {
       isLoading.toggle();
+      print("data unit" + authController.getUnitId());
+      print("data cabang" + authController.getCabangId());
+      print("data token" + authController.getTokenProject());
+      print("data id $id");
+
       Request request = Request(
         url:
             '${authController.getUnitId()}/survey_report/download_pdf/$id?site_project_id=${authController.getCabangId()}',
@@ -213,12 +231,20 @@ class SurveyController extends GetxController {
         },
       );
       request.getPro().then((res) async {
+        logger.i(res.body);
+
+        logger.i(res.statusCode);
         if (res.statusCode == 200) {
           final data = res.body;
-          logger.v(data);
+
+          logger.i(res.body);
           isLoading.toggle();
           //showBotToastText(data);
-          await openUrl(data);
+          await openUrl(data.toString());
+        } else if (res.statusCode == 500) {
+          final data = json.decode(res.body);
+          showBotToastText(data['message']);
+          isLoading.toggle();
         }
       });
     } catch (e) {
@@ -228,11 +254,11 @@ class SurveyController extends GetxController {
 
   Future<void> openUrl(String url,
       {bool forceWebView = false, bool enableJavaScript = false}) async {
-    if (await canLaunch(url)) {
-      await launch(url,
-          forceWebView: forceWebView, enableJavaScript: enableJavaScript);
-    } else {
-      showBotToastText("This link isn't correct, please try again later");
-    }
+    //if (await canLaunch(url)) {
+    await launch(url,
+        forceWebView: forceWebView, enableJavaScript: enableJavaScript);
+    // } else {
+    //   showBotToastText("This link isn't correct, please try again later");
+    // }
   }
 }

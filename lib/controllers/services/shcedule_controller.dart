@@ -55,6 +55,12 @@ class ShceduleController extends GetxController {
             }
           }
           logger.v(data);
+        } else if (res.statusCode == 500) {
+          isLoading.toggle();
+          showBotToastText('Internal Server Error');
+        } else {
+          isLoading.toggle();
+          showBotToastText('Terjasi Kesalahan');
         }
       });
     } catch (e) {

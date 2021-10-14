@@ -25,13 +25,14 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
   List<StructureCondition>? structure;
   List<FootprintCircumstance>? listFootprint;
   TextEditingController budgetCT = TextEditingController();
-  TextEditingController existingBuildingArea = TextEditingController();
   TextEditingController existingLandArea = TextEditingController();
+  TextEditingController existingBuildingArea = TextEditingController();
+  TextEditingController existingLandArealistFootprint = TextEditingController();
   TextEditingController buildingArea = TextEditingController();
   TextEditingController landArea = TextEditingController();
   TextEditingController note = TextEditingController();
 
-  DateTime _focusedDay = DateTime.now();
+  DateTime? _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   var formatter = DateFormat("yyyy-MM-dd");
   List<AHSform> vPekerjaan = [];
@@ -40,21 +41,58 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
   List<Map<String, dynamic>> dataJob = [];
   List<Map<String, dynamic>> dataImage = [];
   String title = 'Tambah';
+  var uuid = Uuid();
   @override
   void initState() {
     super.initState();
     if (widget.isEdit == true) {
       title = 'Edit';
-      budgetCT = TextEditingController(text: widget.data!.budget);
-      existingBuildingArea =
-          TextEditingController(text: widget.data!.existingBuildingArea);
-      existingLandArea =
-          TextEditingController(text: widget.data!.existingLandArea);
-      buildingArea = TextEditingController(text: widget.data!.buildingArea);
-      landArea = TextEditingController(text: widget.data!.landArea);
-      note = TextEditingController(text: widget.data!.note);
-      _selectedDay = widget.data!.requestDate;
+      budgetCT.text = widget.data!.budget!;
+      existingBuildingArea.text = widget.data!.existingBuildingArea ?? '-';
+      existingLandArea.text = widget.data!.existingLandArea ?? '-';
+      buildingArea.text = widget.data!.buildingArea ?? '-';
+      landArea.text = widget.data!.landArea ?? '-';
+      note.text = widget.data!.note ?? '-';
+      _selectedDay = widget.data!.requestDate ?? _focusedDay;
+      _focusedDay = widget.data!.requestDate ?? _focusedDay;
+
+      vPekerjaan = widget.data!.uPrice!.map((e) {
+        var id = uuid.v1();
+        var newAHS = AHS(id, title: e.name!, volume: e.volume!);
+        return AHSform(
+          id,
+          user: newAHS,
+          onDelete: () {
+            return onDelete(id);
+          },
+          textEditingController: TextEditingController(),
+        );
+      }).toList();
+
+      vJob = widget.data!.jobs!.map((e) {
+        var id = uuid.v1();
+        var newJobs = Jobs(id,
+            idSummeries: e.id!,
+            ahs: e.name ?? '',
+            kasus: e.cases!,
+            harga: e.totalPrice == null ? '' : e.totalPrice.toString(),
+            saran: e.suggestion!,
+            image: e.image!);
+        return JobSummariesForm(id,
+            job: newJobs, isDelete: () => onDeleteJob(newJobs));
+      }).toList();
     }
+  }
+
+  @override
+  void dispose() {
+    budgetCT.dispose();
+    existingBuildingArea.dispose();
+    existingLandArea.dispose();
+    buildingArea.dispose();
+    landArea.dispose();
+    note.dispose();
+    super.dispose();
   }
 
   @override
@@ -80,12 +118,12 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                 child: ListTile(
                   title: Text(
                     (shcedulePicker == null)
-                        ? (widget.isEdit == true)
+                        ? (widget.isEdit == true && widget.data != null)
                             ? widget.data!.subjekJadwal ?? ''
                             : 'Pilih Referensi Jadwal Survey'
                         : shcedulePicker!.text ?? '',
                     style: TextStyle(
-                        color: (shcedulePicker == null)
+                        color: (shcedulePicker == null && widget.data == null)
                             ? Colors.grey
                             : Colors.black),
                   ),
@@ -101,7 +139,6 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
               ),
               labelText('Kategori Bisnis'),
               TextField(
-                //controller: controller.emailCT,
                 readOnly: true,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
@@ -127,13 +164,27 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listServicePicker == null
-                      ? Text(
-                          'Pilih Jasa',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text(
-                          '${listServicePicker!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listServicePicker == null && widget.data == null)
+                          Text(
+                            'Pilih Jasa',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null &&
+                            listServicePicker == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.order!
+                                  .map((e) => Text('${e.title}, '))
+                                  .toList())
+                        else if (listServicePicker != null)
+                          Text(
+                              '${listServicePicker!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => ServicePickerPage())!.then((value) {
                       if (value != null && value is List<ServicePicker>) {
@@ -150,13 +201,26 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listWorkPicker == null
-                      ? Text(
-                          'Pilih Jenis Pekerjaan',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text(
-                          '${listWorkPicker!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listWorkPicker == null && widget.data == null)
+                          Text(
+                            'Pilih Jenis Pekerjaan',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listWorkPicker == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.workType!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listWorkPicker != null)
+                          Text(
+                              '${listWorkPicker!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => WorkPickerPage())!.then((value) {
                       if (value != null && value is List<WorkTypePicker>) {
@@ -174,13 +238,26 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listWorkMethod == null
-                      ? Text(
-                          'Pilih Metode Kerja',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text(
-                          '${listWorkMethod!.map((e) => e.name).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listWorkMethod == null && widget.data == null)
+                          Text(
+                            'Pilih Metode Kerja',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listWorkMethod == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.workMethod!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listWorkMethod != null)
+                          Text(
+                              '${listWorkMethod!.map((e) => e.name).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => WorkMethodPickerPage())!.then((value) {
                       if (value != null && value is List<WorkMethodPicker>) {
@@ -197,12 +274,25 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listMaterial == null
-                      ? Text(
-                          'Pilih Material/Chemical',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${listMaterial!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listMaterial == null && widget.data == null)
+                          Text(
+                            'Pilih Material',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listMaterial == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.materials!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listMaterial != null)
+                          Text('${listMaterial!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => MaterialPickerPage())!.then((value) {
                       if (value != null && value is List<MaterialPicker>) {
@@ -219,12 +309,25 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listLoc == null
-                      ? Text(
-                          'Pilih Akses Lokasi',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${listLoc!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listLoc == null && widget.data == null)
+                          Text(
+                            'Pilih Akses Lokasi',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listLoc == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.locatioanAccesses!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listLoc != null)
+                          Text('${listLoc!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => LocationPickerPage())!.then((value) {
                       if (value != null && value is List<LocationPicker>) {
@@ -241,12 +344,25 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listRoad == null
-                      ? Text(
-                          'Pilih Akses Jalan',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${listRoad!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listRoad == null && widget.data == null)
+                          Text(
+                            'Pilih Akses  Jalan',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listRoad == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.accessRoad!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listRoad != null)
+                          Text('${listRoad!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => RoadPickerPage())!.then((value) {
                       if (value != null && value is List<AccessRoad>) {
@@ -263,12 +379,25 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listLand == null
-                      ? Text(
-                          'Pilih Contur Tanah',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${listLand!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listLand == null && widget.data == null)
+                          Text(
+                            'Pilih Contur Tanah',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listLand == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.landContours!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listLand != null)
+                          Text('${listLand!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => LandPickerPage())!.then((value) {
                       if (value != null && value is List<LandContour>) {
@@ -285,12 +414,26 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: listFootprint == null
-                      ? Text(
-                          'Pilih Keadaan Tapak',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${listFootprint!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (listFootprint == null && widget.data == null)
+                          Text(
+                            'Pilih Keadaan Tapak',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && listFootprint == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.foot!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (listFootprint != null)
+                          Text(
+                              '${listFootprint!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => FootPickerPage())!.then((value) {
                       if (value != null &&
@@ -308,12 +451,25 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: structure == null
-                      ? Text(
-                          'Pilih Keadaan Struktur',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${structure!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (structure == null && widget.data == null)
+                          Text(
+                            'Pilih Keadaan Struktur',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && structure == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.structure!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (structure != null)
+                          Text('${structure!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => StructurePage())!.then((value) {
                       if (value != null && value is List<StructureCondition>) {
@@ -330,12 +486,25 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                     borderRadius: BorderRadius.circular(35),
                     color: Colors.white),
                 child: ListTile(
-                  title: wall == null
-                      ? Text(
-                          'Pilih Keadaan Dinding',
-                          style: TextStyle(color: Colors.grey),
-                        )
-                      : Text('${wall!.map((e) => e.text).toString()}'),
+                  title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        if (wall == null && widget.data == null)
+                          Text(
+                            'Pilih Keadaan Dinding',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        else if (widget.data != null && wall == null)
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: widget.data!.wall!
+                                  .map((e) => Text('${e.name}, '))
+                                  .toList())
+                        else if (wall != null)
+                          Text('${wall!.map((e) => e.text).toString()}')
+                      ]),
                   onTap: () {
                     Get.to(() => WallPage())!.then((value) {
                       if (value != null && value is List<WallCondition>) {
@@ -452,7 +621,7 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                   child: TableCalendar(
                     firstDay: kFirstDay,
                     lastDay: kLastDay,
-                    focusedDay: _focusedDay,
+                    focusedDay: _focusedDay!,
                     availableGestures: AvailableGestures.horizontalSwipe,
                     availableCalendarFormats: {
                       CalendarFormat.month: 'Months',
@@ -542,105 +711,143 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
                 () => ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     primary: mainColor,
-                    fixedSize: Size(double.infinity, 45),
+                    minimumSize: Size(double.infinity, 45),
                   ),
-                  onPressed: (widget.isEdit != true)
-                      ? () async {
-                          if (shcedulePicker == null) {
-                            showBotToastText(
-                                'Isian referensi jadwal wajib diisi');
-                          } else if (listServicePicker == null) {
-                            showBotToastText('Isian jasa wajib diisi');
-                          } else if (listWorkPicker == null) {
-                            showBotToastText(
-                                'Isian jenis pekerjaan wajib diisi');
-                          }
-                          // } else if (listWorkMethodd == null) {
-                          //   showBotToastText('Isian metode kerja wajib diisi');
-                          // } else if (listLocd == null) {
-                          //   showBotToastText(
-                          //       'Isian location accesses wajib diisi');
-                          // } else if (listRoadd == null) {
-                          //   showBotToastText('Isian access roads wajib diisi');
-                          // } else if (listLanddd == null) {
-                          //   showBotToastText('Isian land contours wajib diisi');
-                          // } else if (listFootprintdd == null) {
-                          //   showBotToastText(
-                          //       'Isian footprint circumstances wajib diisi');
-                          // } else if (structuredd == null) {
-                          //   showBotToastText(
-                          //       'Isian structure condition wajib diisi');
-                          // } else if (walldd == null) {
-                          //   showBotToastText(
-                          //       'Isian wall condition wajib diisi');
-                          // } else if (landAreadd.text == '') {
-                          //   showBotToastText('Isian land area wajib diisi');
-                          // } else if (buildingAreadd.text == '') {
-                          //   showBotToastText('Isian building area wajib diisi');
-                          // } else if (existingLandAreadd.text == '') {
-                          //   showBotToastText(
-                          //       'Isian existing land area wajib diisi');
-                          // } else if (existingBuildingAreadd.text == '') {
-                          //   showBotToastText(
-                          //       'Isian existing building area wajib diisi');
-                          // } else if (budgetCTdd.text == '') {
-                          //   showBotToastText('Isian budget wajib diisi');
-                          // } else if (_selectedDay == null) {
-                          //   showBotToastText('Isian request date wajib diisi');
-                          // }
-                          await onSave();
-                          await onSaveJob();
-                          setState(() {});
-                          Map<String, dynamic> data = {
-                            "origin": "android",
-                            "survey_schedule_id": shcedulePicker!.id,
-                            "site_project_id": authController.getCabangId(),
-                            "existing_land_area": existingLandArea.text,
-                            "existing_building_area": existingBuildingArea.text,
-                            "land_area": landArea.text,
-                            "building_area": buildingArea.text,
-                            "budget": budgetCT.text.replaceAll(".", ""),
-                            "request_date":
-                                formatter.format(_selectedDay!.toLocal()),
-                            "note": note.text,
-                            if (listWorkPicker != null)
-                              "work_types":
-                                  listWorkPicker!.map((e) => e.id).toList(),
-                            "services":
-                                listServicePicker!.map((e) => e.id).toList(),
-                            if (listWorkMethod != null)
-                              "work_methods":
-                                  listWorkMethod!.map((e) => e.id).toList(),
-                            if (listMaterial != null)
-                              "materials":
-                                  listMaterial!.map((e) => e.id).toList(),
-                            "job_summaries": dataJob,
-                            if (listLoc != null)
-                              "location_accesses":
-                                  listLoc!.map((e) => e.id).toList(),
-                            if (listRoad != null)
-                              "access_roads":
-                                  listRoad!.map((e) => e.id).toList(),
-                            if (listLand != null)
-                              "land_contours":
-                                  listLand!.map((e) => e.id).toList(),
-                            if (listFootprint != null)
-                              "footprint_circumstances":
-                                  listFootprint!.map((e) => e.id).toList(),
-                            if (structure != null)
-                              "structure_condition":
-                                  structure!.map((e) => e.id).toList(),
-                            if (wall != null)
-                              "wall_condition": wall!.map((e) => e.id).toList(),
-                            if (dataAHS.isNotEmpty) "unit_prices": dataAHS,
-                          };
-                          survey.createSurvey(data);
-                        }
-                      : () {
-                          Get.back();
-                        },
+                  onPressed: () async {
+                    if (shcedulePicker == null && widget.isEdit != true) {
+                      showBotToastText('Isian referensi jadwal wajib diisi');
+                    } else if (listServicePicker == null &&
+                        widget.isEdit != true) {
+                      showBotToastText('Isian jasa wajib diisi');
+                    } else if (listWorkPicker == null &&
+                        widget.isEdit != true) {
+                      showBotToastText('Isian jenis pekerjaan wajib diisi');
+                    }
+                    // } else if (listWorkMethodd == null) {
+                    //   showBotToastText('Isian metode kerja wajib diisi');
+                    // } else if (listLocd == null) {
+                    //   showBotToastText(
+                    //       'Isian location accesses wajib diisi');
+                    // } else if (listRoadd == null) {
+                    //   showBotToastText('Isian access roads wajib diisi');
+                    // } else if (listLanddd == null) {
+                    //   showBotToastText('Isian land contours wajib diisi');
+                    // } else if (listFootprintdd == null) {
+                    //   showBotToastText(
+                    //       'Isian footprint circumstances wajib diisi');
+                    // } else if (structuredd == null) {
+                    //   showBotToastText(
+                    //       'Isian structure condition wajib diisi');
+                    // } else if (walldd == null) {
+                    //   showBotToastText(
+                    //       'Isian wall condition wajib diisi');
+                    // } else if (landAreadd.text == '') {
+                    //   showBotToastText('Isian land area wajib diisi');
+                    // } else if (buildingAreadd.text == '') {
+                    //   showBotToastText('Isian building area wajib diisi');
+                    // } else if (existingLandAreadd.text == '') {
+                    //   showBotToastText(
+                    //       'Isian existing land area wajib diisi');
+                    // } else if (existingBuildingAreadd.text == '') {
+                    //   showBotToastText(
+                    //       'Isian existing building area wajib diisi');
+                    // } else if (budgetCTdd.text == '') {
+                    //   showBotToastText('Isian budget wajib diisi');
+                    // } else if (_selectedDay == null) {
+                    //   showBotToastText('Isian request date wajib diisi');
+                    // }
+                    dataAHS.clear();
+                    dataJob.clear();
+                    dataImage.clear();
+                    await onSave();
+                    await onSaveJob();
+                    setState(() {});
+
+                    Map<String, dynamic> data = {
+                      if (widget.isEdit == true) "_method": "put",
+                      "origin": "android",
+                      "survey_schedule_id": (shcedulePicker == null)
+                          ? widget.data!.surveyScheduleId!
+                          : shcedulePicker!.id,
+                      "site_project_id": authController.getCabangId(),
+                      "existing_land_area": existingLandArea.text,
+                      "existing_building_area": existingBuildingArea.text,
+                      "land_area": landArea.text,
+                      "building_area": buildingArea.text,
+                      "budget": budgetCT.text.replaceAll(".", ""),
+                      "request_date": (_selectedDay == null)
+                          ? ""
+                          : formatter.format(_selectedDay!.toLocal()),
+                      "note": note.text,
+                      "work_types": (listWorkPicker != null)
+                          ? listWorkPicker!.map((e) => e.id).toList()
+                          : (listWorkPicker == null && widget.isEdit == true)
+                              ? widget.data!.workType!.map((e) => e.id).toList()
+                              : null,
+                      "services": (listServicePicker != null)
+                          ? listServicePicker!.map((e) => e.id).toList()
+                          : widget.data!.order!.map((e) => e.id).toList(),
+                      "work_methods": (listWorkMethod != null)
+                          ? listWorkMethod!.map((e) => e.id).toList()
+                          : (listWorkMethod == null && widget.isEdit == true)
+                              ? widget.data!.workMethod!
+                                  .map((e) => e.id)
+                                  .toList()
+                              : null,
+                      "materials": (listMaterial != null)
+                          ? listMaterial!.map((e) => e.id).toList()
+                          : (listMaterial == null && widget.isEdit == true)
+                              ? widget.data!.materials!
+                                  .map((e) => e.id)
+                                  .toList()
+                              : null,
+                      "job_summaries": dataJob,
+                      "location_accesses": (listLoc != null)
+                          ? listLoc!.map((e) => e.id).toList()
+                          : (listLoc == null && widget.isEdit == true)
+                              ? widget.data!.locatioanAccesses!
+                                  .map((e) => e.id)
+                                  .toList()
+                              : null,
+                      "access_roads": (listRoad != null)
+                          ? listRoad!.map((e) => e.id).toList()
+                          : (listRoad == null && widget.isEdit == true)
+                              ? widget.data!.accessRoad!
+                                  .map((e) => e.id)
+                                  .toList()
+                              : null,
+                      "land_contours": (listLand != null)
+                          ? listLand!.map((e) => e.id).toList()
+                          : (listLand == null && widget.isEdit == true)
+                              ? widget.data!.landContours!
+                                  .map((e) => e.id)
+                                  .toList()
+                              : null,
+                      "footprint_circumstances": (listFootprint != null)
+                          ? listFootprint!.map((e) => e.id).toList()
+                          : (listFootprint == null && widget.isEdit == true)
+                              ? widget.data!.foot!.map((e) => e.id).toList()
+                              : null,
+                      "structure_condition": (structure != null)
+                          ? structure!.map((e) => e.id).toList()
+                          : (structure == null && widget.isEdit == true)
+                              ? widget.data!.structure!
+                                  .map((e) => e.id)
+                                  .toList()
+                              : null,
+                      "wall_condition": (wall != null)
+                          ? wall!.map((e) => e.id).toList()
+                          : (wall == null && widget.isEdit == true)
+                              ? widget.data!.wall!.map((e) => e.id).toList()
+                              : null,
+                      "unit_prices": (dataAHS.isNotEmpty) ? dataAHS : [],
+                    };
+                    (widget.isEdit == true)
+                        ? survey.updateSurvey(data, widget.data!.id!)
+                        : survey.createSurvey(data);
+                  },
                   icon: Icon(Icons.done),
-                  label: survey.isLoading.value == true
+                  label: survey.isLoading.value
                       ? loadingBounceIndicator
                       : Text('Simpan'),
                 ),
@@ -652,21 +859,28 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
   }
 
   ///on form user deleted
-  void onDelete(AHS _user) {
-    setState(() {
-      var find = vPekerjaan.firstWhere(
-        (it) => it.user == _user,
-      );
-      vPekerjaan.removeAt(vPekerjaan.indexOf(find));
-    });
+  void onDelete(String id) {
+    var find = vPekerjaan.firstWhere(
+      (it) => it.id == id,
+    );
+    print(find);
+
+    vPekerjaan.removeWhere((element) => element.id == find.id);
+
+    vPekerjaan.remove(find.user);
+
+    print(vPekerjaan);
+    setState(() {});
   }
 
   void onDeleteJob(Jobs _job) {
     setState(() {
       var find = vJob.firstWhere(
-        (it) => it.job == _job,
+        (it) => it.id == _job.id,
       );
-      vJob.removeAt(vJob.indexOf(find));
+      vJob.removeWhere((element) {
+        return element.id == find.id;
+      });
     });
   }
 
@@ -674,22 +888,26 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
   void onAddForm() {
     FocusScope.of(context).requestFocus(FocusNode());
     setState(() {
-      var _user = AHS();
-      vPekerjaan.add(AHSform(
-        user: _user,
-        onDelete: () => onDelete(_user),
-      ));
+      var _id = uuid.v1();
+      var _user = AHS(_id);
+      vPekerjaan.add(AHSform(_id,
+          user: _user,
+          onDelete: () => onDelete(_id),
+          textEditingController: TextEditingController()));
     });
   }
 
   void onAddFormJob() {
     FocusScope.of(context).requestFocus(FocusNode());
     setState(() {
-      var _job = Jobs();
-      vJob.add(JobSummariesForm(
-        job: _job,
-        isDelete: () => onDeleteJob(_job),
-      ));
+      var _id = uuid.v1();
+      var _job = Jobs(_id);
+      vJob.add(JobSummariesForm(_id,
+          job: _job,
+          isDelete: () => onDeleteJob(_job),
+          kasus: TextEditingController(),
+          saran: TextEditingController(),
+          hargaJual: TextEditingController()));
     });
   }
 
@@ -703,15 +921,16 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
         vJob.forEach((element) {
           element.job!.image!.forEach((e) {
             return dataImage.add({
-              "name": e.name,
-              "image": e.image,
+              "name": e.fullname,
+              "image": e.src,
             });
           });
           return dataJob.add({
             "images": dataImage,
             "case": element.job!.kasus,
             "suggestion": element.job!.saran,
-            "unit_price_id": element.job!.ahs,
+            "unit_price_id": element.job!.id,
+            if (widget.isEdit == true) "removed_images": [],
           });
         });
         print(dataJob);
@@ -728,7 +947,7 @@ class _ReportSurveyFormState extends State<ReportSurveyForm> {
         //var data = vPekerjaan.map((it) => it.user).toList();
         vPekerjaan.forEach((element) {
           return dataAHS.add({
-            "unit_price_id": element.user!.title,
+            "unit_price_id": element.user!.id,
             "volume": element.user!.volume,
           });
         });

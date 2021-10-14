@@ -27,6 +27,7 @@ import 'package:horizontal_data_table/horizontal_data_table.dart';
 import 'package:lottie/lottie.dart';
 import 'package:currency_text_input_formatter/currency_text_input_formatter.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:uuid/uuid.dart';
 
 part 'auth/sign_in.dart';
 part 'auth/splash.dart';
@@ -82,7 +83,6 @@ part 'project/check_quality_page.dart';
 part 'project/home_aktivitas_page.dart';
 part 'project/work_report_page.dart';
 part 'project/work_report_form.dart';
-
 
 var width = Get.width;
 var height = Get.height;

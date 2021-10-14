@@ -28,7 +28,7 @@ class DetailReportPage extends StatelessWidget {
                           .map((e) => Text('${e.title}, '))
                           .toList()),
                 ),
-                labelText('Metode Pengerjaan'),
+                labelText('Jenis Pekerjaan'),
                 Container(
                   padding: EdgeInsets.all(18),
                   decoration: BoxDecoration(
@@ -109,7 +109,9 @@ class DetailReportPage extends StatelessWidget {
                   'Budget',
                   text:
                       NumberFormat.currency(locale: 'id', symbol: 'Rp ').format(
-                    int.parse(data.budget!),
+                    int.parse((data.budget == "")
+                        ? "0"
+                        : data.budget!.replaceAll(".", "")),
                   ),
                 ),
                 Padding(
@@ -150,85 +152,85 @@ class DetailReportPage extends StatelessWidget {
             ]),
     );
   }
+}
 
-  Widget detailCard(String title, {String? text}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      labelText(title),
-      TextField(
-        readOnly: true,
-        decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(35),
-              borderSide: BorderSide.none,
-            ),
-            fillColor: Colors.white,
-            filled: true,
-            contentPadding: EdgeInsets.fromLTRB(30, 16, 0, 16),
-            hintStyle: TextStyle(color: Colors.black),
-            hintText: text),
-      ),
-    ]);
-  }
-
-  Widget cardAHS(Uprice price) {
-    return Row(children: [
-      Expanded(
-        child: Container(
-          padding: EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
+Widget detailCard(String title, {String? text}) {
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    labelText(title),
+    TextField(
+      readOnly: true,
+      decoration: InputDecoration(
+          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(35),
+            borderSide: BorderSide.none,
           ),
-          child: Text('${price.name}'),
-        ),
-      ),
-      Expanded(
-        child: Container(
-          padding: EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(35),
-          ),
-          child: Text(NumberFormat.currency(
-                  locale: 'id', symbol: 'Rp ', decimalDigits: 0)
-              .format(price.totalPrice)),
-        ),
-      ),
-    ]);
-  }
+          fillColor: Colors.white,
+          filled: true,
+          contentPadding: EdgeInsets.fromLTRB(30, 16, 0, 16),
+          hintStyle: TextStyle(color: Colors.black),
+          hintText: text),
+    ),
+  ]);
+}
 
-  Widget cardJob(JobsX job) {
-    print("(===============================);");
-    print(job.image!.map((e) => '${e.src}').toList());
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      labelText('Gambar'),
-      Container(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: 12),
-          scrollDirection: Axis.horizontal,
-          child: Row(
-              children: job.image!
-                  .map((e) => Container(
-                        width: 200,
-                        height: 200,
-                        child: Card(
-                          elevation: 8.0,
-                          child: Image.network(
-                            '${e.src}',
-                            fit: BoxFit.cover,
-                          ),
+Widget cardAHS(Uprice price) {
+  return Row(children: [
+    Expanded(
+      child: Container(
+        padding: EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(35),
+        ),
+        child: Text('${price.name}'),
+      ),
+    ),
+    Expanded(
+      child: Container(
+        padding: EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(35),
+        ),
+        child: Text(
+            NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0)
+                .format(price.totalPrice)),
+      ),
+    ),
+  ]);
+}
+
+Widget cardJob(JobsX job) {
+  print("(===============================);");
+  print(job.image!.map((e) => '${e.src}').toList());
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    labelText('Gambar'),
+    Container(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: 12),
+        scrollDirection: Axis.horizontal,
+        child: Row(
+            children: job.image!
+                .map((e) => Container(
+                      width: 200,
+                      height: 200,
+                      child: Card(
+                        elevation: 8.0,
+                        child: Image.network(
+                          '${e.src}',
+                          fit: BoxFit.cover,
                         ),
-                      ))
-                  .toList()),
-        ),
+                      ),
+                    ))
+                .toList()),
       ),
-      detailCard('Kasus', text: '${job.cases}'),
-      detailCard('Saran', text: '${job.suggestion}'),
-      detailCard('AHS', text: '${job.name}'),
-      detailCard('Harga Jual',
-          text: NumberFormat.currency(
-                  locale: 'id', symbol: 'Rp ', decimalDigits: 0)
-              .format(job.totalPrice)),
-    ]);
-  }
+    ),
+    detailCard('Kasus', text: '${job.cases}'),
+    detailCard('Saran', text: '${job.suggestion}'),
+    detailCard('AHS', text: '${job.name}'),
+    detailCard('Harga Jual',
+        text:
+            NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0)
+                .format(job.totalPrice ?? 0)),
+  ]);
 }

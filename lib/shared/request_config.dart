@@ -42,6 +42,9 @@ class Request {
   }
 
   Future<http.Response> getPro() {
+    print('dev $isDevProj');
+    String urls = '${isDevProj ? baseDevProjUrl : baseProjUrl}$url';
+    print('dev url: $urls');
     return http.get(
         Uri.parse('${isDevProj ? baseDevProjUrl : baseProjUrl}$url'),
         headers: headers);

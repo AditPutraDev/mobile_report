@@ -17,8 +17,8 @@ class AuthController extends GetxController {
   final newPassController = TextEditingController();
   final confirmPassController = TextEditingController();
   final emailCT =
-      TextEditingController(text: kDebugMode ? 'dimas.yogi.777@gmail.com' : '');
-  final passwordCT = TextEditingController(text: kDebugMode ? 'bintoro123' : '');
+      TextEditingController(text: kDebugMode ? 'nurulmutakin27@gmail.com' : '');
+  final passwordCT = TextEditingController(text: kDebugMode ? 'bintoro' : '');
   final box = GetStorage();
 
   @override
